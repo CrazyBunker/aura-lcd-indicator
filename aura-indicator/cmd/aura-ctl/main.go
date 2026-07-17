@@ -24,7 +24,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Usage: aura-ctl [-d device] <command> [args...]\n")
 		fmt.Fprintf(os.Stderr, "Commands:\n")
 		fmt.Fprintf(os.Stderr, "  detect                          List connected AURA devices\n")
-		fmt.Fprintf(os.Stderr, "  status                          Show device status\n")
 		fmt.Fprintf(os.Stderr, "  set <channel> <mode> [color]    Set effect mode\n")
 		fmt.Fprintf(os.Stderr, "  direct <channel> <color>...     Set direct colors\n")
 		fmt.Fprintf(os.Stderr, "  off <channel>                   Turn off channel\n")
@@ -41,8 +40,6 @@ func main() {
 	switch cmd {
 	case "detect":
 		cmdDetect()
-	case "status":
-		cmdStatus()
 	case "set":
 		cmdSet(args)
 	case "direct":
@@ -80,29 +77,6 @@ func cmdDetect() {
 		if d.Name != "" {
 			fmt.Printf("  Name:    %s\n", d.Name)
 		}
-	}
-}
-
-func cmdStatus() {
-	dev, err := aura.OpenDevice(devicePath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
-	defer dev.Close()
-
-	fmt.Printf("Device:      %s\n", dev.Path())
-	fmt.Printf("Firmware:    %s\n", dev.Firmware())
-	fmt.Printf("Fixed LEDs:  %d\n", dev.NumTotal())
-	fmt.Printf("Addr LEDs:   %d\n", dev.NumAddr())
-	fmt.Printf("Channels:\n")
-	for _, ch := range dev.Channels() {
-		typ := "ARGB"
-		if !ch.IsAddr {
-			typ = "RGB"
-		}
-		fmt.Printf("  %s: effect=0x%02X direct=0x%02X start=%d n=%d [%s]\n",
-			ch.Name, ch.EffectCh, ch.DirectCh, ch.StartLED, ch.NumLEDs, typ)
 	}
 }
 

@@ -8,9 +8,6 @@ import (
 	"path/filepath"
 )
 
-// StateFilePath — путь к файлу состояния
-const StateFilePath = "/tmp/aura_led2_state.json"
-
 // LCDLedCount — количество LED для LCD (LED1..LED32)
 const LCDLedCount = 32
 
@@ -27,10 +24,20 @@ func defaultState() *State {
 	return &State{}
 }
 
-// LoadState загружает состояние из JSON-файла.
-// Если файл отсутствует или повреждён — возвращает состояние по умолчанию.
+// stateFilePath возвращает путь к файлу состояния — рядом с бинарником.
+func stateFilePath() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return "aura_led2_state.json"
+	}
+	dir := filepath.Dir(exe)
+	return filepath.Join(dir, "aura_led2_state.json")
+}
+
+// LoadState загружает состояние из файла рядом с бинарником.
+// Если файл не найден или повреждён — возвращает состояние по умолчанию.
 func LoadState() *State {
-	data, err := os.ReadFile(StateFilePath)
+	data, err := os.ReadFile(stateFilePath())
 	if err != nil {
 		return defaultState()
 	}
@@ -42,28 +49,13 @@ func LoadState() *State {
 	return &s
 }
 
-// SaveState атомарно сохраняет состояние в JSON-файл
-// (запись во временный файл + os.Rename).
+// SaveState сохраняет состояние в файл рядом с бинарником.
 func SaveState(s *State) error {
 	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
 		return err
 	}
-
-	dir := filepath.Dir(StateFilePath)
-	tmp, err := os.CreateTemp(dir, ".aura_led2_state_")
-	if err != nil {
-		return err
-	}
-
-	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		os.Remove(tmp.Name())
-		return err
-	}
-	tmp.Close()
-
-	return os.Rename(tmp.Name(), StateFilePath)
+	return os.WriteFile(stateFilePath(), data, 0644)
 }
 
 // GetFullColors собирает полный 33-LED буфер из состояния:
