@@ -14,8 +14,8 @@ __pycache__/
 # Build output
 aura-indicator/bin/
 
-# Photos / screenshots
-img/
+# Screenshots (script-generated)
+screenshots/
 
 # AURA state file (runtime)
 /tmp/aura_led2_state.json
