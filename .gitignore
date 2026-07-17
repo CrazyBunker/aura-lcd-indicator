@@ -13,6 +13,7 @@ __pycache__/
 
 # Build output
 aura-indicator/bin/
+release/
 
 # Screenshots (script-generated)
 screenshots/

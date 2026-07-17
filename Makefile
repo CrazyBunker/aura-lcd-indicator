@@ -40,6 +40,23 @@ cross:
 	GOOS=darwin  GOARCH=arm64 go build -ldflags="-s -w" -o bin/$(IND_BIN)_darwin_arm64  ./cmd/aura-indicator/
 
 clean:
-	rm -rf $(BIN_DIR)
+	rm -rf $(BIN_DIR) release/
 
 rebuild: clean build
+
+# Релиз: сборка, тег, пуш
+# Использование: make release VERSION=v1.0.0
+.PHONY: release
+release: cross
+	@test -n "$(VERSION)" || (echo "Usage: make release VERSION=v1.0.0"; exit 1)
+	@echo "=== Packaging release $(VERSION) ==="
+	mkdir -p release/$(VERSION)
+	cp $(BIN_DIR)/* release/$(VERSION)/
+	cd release/$(VERSION) && sha256sum * > checksums.txt
+	@echo "=== Checksums ==="
+	cat release/$(VERSION)/checksums.txt
+	@echo ""
+	@echo "=== Tag and push ==="
+	git tag $(VERSION)
+	git push origin $(VERSION)
+	@echo "=== Done! GitHub Actions соберёт Release ==="
