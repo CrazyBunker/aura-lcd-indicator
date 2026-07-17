@@ -1,0 +1,18 @@
+# LLM documentation — not for version control
+docs-llm/
+
+# OpenCode skill
+skills/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Serena AI metadata
+.serena/
+
+# Build output
+aura-indicator/bin/
+
+# AURA state file (runtime)
+/tmp/aura_led2_state.json
