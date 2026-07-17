@@ -29,7 +29,7 @@
  *   LED1 зелёный  : FF 00 00
  *   LED2 синий    : 00 00 FF
  *   LED3 белый    : FF FF FF
- *   LED4..9       : 00 00 00 (x6)
+ *   LED4          : 00 00 00
  */
 
 #include <Arduino.h>
@@ -63,7 +63,7 @@
 #define LEDC_BITS   8        // разрешение PWM (0..255 скважность)
 #define RMT_BAUD    921600
 #define MAX_ITEMS   3000
-#define N_LEDS_TEST 10
+#define N_LEDS_TEST 5
 #define TICK_HZ     40000000UL   // 40 МГц -> 25 нс такт
 #define IDLE_TICKS  4000         // 4000 * 25 нс = 100 мкс порог сброса-паузы
 
@@ -108,7 +108,7 @@ static void build_test_frame() {
         {255, 0, 0},     // зелёный
         {0, 0, 255},     // синий
         {255, 255, 255}, // белый
-        {0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}
+        {0,0,0}
     };
     int idx = 0;
     for (int i = 0; i < N_LEDS_TEST; i++) {
@@ -183,16 +183,16 @@ void setup() {
     Serial.println("    LED1 green: FF 00 00");
     Serial.println("    LED2 blue : 00 00 FF");
     Serial.println("    LED3 white: FF FF FF");
-    Serial.println("    LED4..9   : 00 00 00 (x6)");
+    Serial.println("    LED4      : 00 00 00");
     Serial.println("  Self-test: wire GPIO17 -> GPIO16 (AURA tap off GPIO16).");
     Serial.println("  Send 'd' = raw dump+hex.  Send 't' = toggle TX.  Send 'l' = toggle live/histogram.  Send 'a' = author info.\n");
 
-    if (!rmtInit(AURA_PIN, RMT_RX_MODE, RMT_MEM_NUM_BLOCKS_4, TICK_HZ)) {
+    if (!rmtInit(AURA_PIN, RMT_RX_MODE, RMT_MEM_NUM_BLOCKS_6, TICK_HZ)) {
         Serial.println("[RMT] RX init FAILED!");
     }
     rmtSetRxMaxThreshold(AURA_PIN, IDLE_TICKS);
 
-    if (!rmtInit(TX_PIN, RMT_TX_MODE, RMT_MEM_NUM_BLOCKS_4, TICK_HZ)) {
+    if (!rmtInit(TX_PIN, RMT_TX_MODE, RMT_MEM_NUM_BLOCKS_2, TICK_HZ)) {
         Serial.println("[RMT] TX init FAILED!");
     }
 
@@ -380,7 +380,7 @@ void loop() {
     if (g_do_raw) {
         int total = 0;
         bool got_gap = false;
-        // Склейка нескольких вызовов rmtRead (HW буфер = 4 блока = 256 символов)
+        // Склейка нескольких вызовов rmtRead (HW буфер = 6 блоков = 384 символа)
         // в один кадр. Останов при обнаружении символа сброс-паузы (dur0 >= 5000 нс).
         while (total < MAX_ITEMS) {
             size_t num = MAX_ITEMS - total;
@@ -389,9 +389,9 @@ void loop() {
                 if (g_rx_buf[total + i].duration0 * tick_ns >= 5000) { got_gap = true; break; }
             }
             total += (int)num;
-            // Останов при получении полного кадра (rmtRead ограничен 256-символьным
-            // HW буфером; возврат < 256 означает конец кадра, а не заполнение буфера).
-            if (got_gap || num < 256) break;
+            // Останов при получении полного кадра (rmtRead ограничен 384-символьным
+            // HW буфером; возврат < 384 означает конец кадра, а не заполнение буфера).
+            if (got_gap || num < 384) break;
         }
 
         // Декодирование в байты (пропуск символа сброс-паузы: dur0 >= 5000 нс).
