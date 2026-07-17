@@ -45,6 +45,7 @@
 #define TX_PIN      17
 #define LED_PIN     2        // встроенный LED (ESP32-DevKitC синий), активный HIGH
 #define EXT_LED_PIN 13       // внешний индикаторный LED (красный), активный HIGH
+#define GREEN_LED_PIN 12     // внешний индикаторный LED (зелёный), активный HIGH
 
 // Пины 4-битного параллельного LCD (HD44780 совместимый) — все на одной физической стороне
 // (левый ряд DevKit: 26, 25, 27, 33, 32) плюс D7 на GPIO14.
@@ -166,11 +167,13 @@ void setup() {
     // Индикаторы LED с управлением PWM (яркость через LEDC)
     ledcAttach(LED_PIN, LEDC_FREQ, LEDC_BITS);
     ledcAttach(EXT_LED_PIN, LEDC_FREQ, LEDC_BITS);
+    ledcAttach(GREEN_LED_PIN, LEDC_FREQ, LEDC_BITS);
     ledcWrite(LED_PIN, 0);
     ledcWrite(EXT_LED_PIN, 0);
-    // плавное изменение 0->255->0 на обоих для проверки работы пинов LED
-    for (int v = 0; v <= 255; v += 8) { ledcWrite(LED_PIN, v); ledcWrite(EXT_LED_PIN, v); delay(8); }
-    for (int v = 255; v >= 0; v -= 8) { ledcWrite(LED_PIN, v); ledcWrite(EXT_LED_PIN, v); delay(8); }
+    ledcWrite(GREEN_LED_PIN, 0);
+    // плавное изменение 0->255->0 на всех индикаторах для проверки работы пинов LED
+    for (int v = 0; v <= 255; v += 8) { ledcWrite(LED_PIN, v); ledcWrite(EXT_LED_PIN, v); ledcWrite(GREEN_LED_PIN, v); delay(8); }
+    for (int v = 255; v >= 0; v -= 8) { ledcWrite(LED_PIN, v); ledcWrite(EXT_LED_PIN, v); ledcWrite(GREEN_LED_PIN, v); delay(8); }
 
     Serial.println("\n========================================================");
     Serial.println("  AURA ARGB RMT Raw Capture (RX) + TX Self-Test");
@@ -426,12 +429,14 @@ void loop() {
             int n = decode_full_frame(g_rx_buf, (int)num, all_leds);
             
             // Маршрутизация LED0 по цвету: красный канал -> внешний красный LED (GPIO13),
+            // зелёный канал -> внешний зелёный LED (GPIO12),
             // синий канал -> встроенный синий LED (GPIO2). Яркость индикатора
             // следует за интенсивностью канала, полученной от контроллера ARGB.
             // формат all_leds: [G0,R0,B0, G1,R1,B1, ...]
-            // LEDCWrite ожидает R на EXT_LED_PIN, B на LED_PIN
-            ledcWrite(EXT_LED_PIN, all_leds[1]);   // R0
-            ledcWrite(LED_PIN,    all_leds[2]);    // B0
+            // LEDCWrite ожидает R на EXT_LED_PIN, G на GREEN_LED_PIN, B на LED_PIN
+            ledcWrite(EXT_LED_PIN,  all_leds[1]);   // R0
+            ledcWrite(GREEN_LED_PIN, all_leds[0]);  // G0
+            ledcWrite(LED_PIN,     all_leds[2]);    // B0
             
             // Заполнение lcd_colors для LED0..LED11 (порядок RGB для unpack_to_lcd)
             for (int i = 0; i < 12; i++) {
@@ -452,15 +457,16 @@ void loop() {
             }
             
             if (all_leds[0] != last_g || all_leds[1] != last_r || all_leds[2] != last_b) {
-                Serial.printf("LED0 G=%3d R=%3d B=%3d -> GPIO%d(red)=%3d  GPIO%d(blue)=%3d\n",
+                Serial.printf("LED0 G=%3d R=%3d B=%3d -> GPIO%d(red)=%3d  GPIO%d(green)=%3d  GPIO%d(blue)=%3d\n",
                                all_leds[0], all_leds[1], all_leds[2],
-                               EXT_LED_PIN, all_leds[1], LED_PIN, all_leds[2]);
+                               EXT_LED_PIN, all_leds[1], GREEN_LED_PIN, all_leds[0], LED_PIN, all_leds[2]);
                 last_g = all_leds[0]; last_r = all_leds[1]; last_b = all_leds[2];
             }
             
         } else {
             ledcWrite(LED_PIN, 0);
             ledcWrite(EXT_LED_PIN, 0);
+            ledcWrite(GREEN_LED_PIN, 0);
             uint32_t h0[NUM_BUCKETS] = {0}, h1[NUM_BUCKETS] = {0};
             for (size_t i = 0; i < num; i++) {
                 h0[bucket(g_rx_buf[i].duration0 * tick_ns)]++;
