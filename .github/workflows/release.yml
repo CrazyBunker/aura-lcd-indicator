@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}/${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            ext: ""
+          - os: linux
+            arch: arm64
+            ext: ""
+          - os: windows
+            arch: amd64
+            ext: ".exe"
+          - os: darwin
+            arch: amd64
+            ext: ""
+          - os: darwin
+            arch: arm64
+            ext: ""
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: aura-indicator/go.sum
+
+      - name: Build aura-ctl
+        run: |
+          cd aura-indicator
+          GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -o "../release/aura-ctl-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}" ./cmd/aura-ctl/
+
+      - name: Build aura-indicator
+        run: |
+          cd aura-indicator
+          GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -o "../release/aura-indicator-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}" ./cmd/aura-indicator/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.os }}-${{ matrix.arch }}
+          path: release/*
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: binaries-*
+          merge-multiple: true
+          path: release/
+
+      - name: Generate checksums
+        working-directory: release
+        run: sha256sum * > checksums.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body: |
+            Сборка ${{ github.ref_name }}
+
+            Бинарники для Linux (amd64, arm64), Windows (amd64), macOS (amd64, arm64).
+          files: |
+            release/*
+          draft: false
+          prerelease: false
