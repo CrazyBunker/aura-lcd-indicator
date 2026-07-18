@@ -45,8 +45,8 @@
 #define AURA_PIN    16
 #define TX_PIN      17
 #define LED_PIN     2        // встроенный LED (ESP32-DevKitC синий), активный HIGH
-#define EXT_LED_PIN 13       // внешний индикаторный LED (красный), активный HIGH
-#define GREEN_LED_PIN 12     // внешний индикаторный LED (зелёный), активный HIGH
+#define EXT_LED_PIN 15       // внешний индикаторный LED (красный), активный HIGH
+#define GREEN_LED_PIN 4     // внешний индикаторный LED (зелёный), активный HIGH
 
 // Пины 4-битного параллельного LCD (HD44780 совместимый) — все на одной физической стороне
 // (левый ряд DevKit: 26, 25, 27, 33, 32) плюс D7 на GPIO14.
